@@ -192,12 +192,17 @@ install_ollama() {
         done
         warn "No AUR helper found; using the official ollama installer"
     fi
-    if ! has zstd; then
-        warn "The official ollama installer needs 'zstd'. Install it first, e.g.:"
-        warn "  Debian/Ubuntu: sudo apt-get install zstd"
-        warn "  Fedora:        sudo dnf install zstd"
-        warn "  openSUSE:      sudo zypper install zstd"
-        die "zstd is required for ollama installation"
+    local missing=()
+    for tool in zstd awk xargs; do
+        has "$tool" || missing+=("$tool")
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+        warn "The official ollama installer needs: ${missing[*]}"
+        warn "Install them first, e.g.:"
+        warn "  Debian/Ubuntu: sudo apt-get install zstd gawk findutils"
+        warn "  Fedora:        sudo dnf install zstd gawk findutils"
+        warn "  openSUSE:      sudo zypper install zstd gawk findutils"
+        die "Required tools missing: ${missing[*]}"
     fi
     run sh -c "curl -fsSL https://ollama.com/install.sh | ${SUDO} sh"
     has ollama || die "ollama install failed"

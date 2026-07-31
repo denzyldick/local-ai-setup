@@ -26,7 +26,7 @@ install_prereqs() {
     elif command -v dnf >/dev/null 2>&1; then
         dnf install -y -q curl ca-certificates python3 zstd
     elif command -v zypper >/dev/null 2>&1; then
-        zypper --non-interactive --gpg-auto-import-keys install curl ca-certificates python3 zstd tar gzip
+        zypper --non-interactive --gpg-auto-import-keys install curl ca-certificates python3 zstd tar gzip gawk findutils
     else
         die "Unsupported package manager"
     fi
