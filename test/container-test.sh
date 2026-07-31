@@ -18,15 +18,15 @@ die() { printf '\033[1;31m==>\033[0m %s\n' "$*" >&2; exit 1; }
 install_prereqs() {
     log "Installing prerequisites..."
     if command -v pacman >/dev/null 2>&1; then
-        pacman -Sy --noconfirm curl ca-certificates python3 tar
+        pacman -Sy --noconfirm curl ca-certificates python3 tar zstd
     elif command -v apt-get >/dev/null 2>&1; then
         export DEBIAN_FRONTEND=noninteractive
         apt-get update -qq
-        apt-get install -y -qq curl ca-certificates python3 python3-venv
+        apt-get install -y -qq curl ca-certificates python3 python3-venv zstd
     elif command -v dnf >/dev/null 2>&1; then
-        dnf install -y -q curl ca-certificates python3
+        dnf install -y -q curl ca-certificates python3 zstd
     elif command -v zypper >/dev/null 2>&1; then
-        zypper --non-interactive --gpg-auto-import-keys install curl ca-certificates python3
+        zypper --non-interactive --gpg-auto-import-keys install curl ca-certificates python3 zstd
     else
         die "Unsupported package manager"
     fi

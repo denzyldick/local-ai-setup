@@ -190,6 +190,13 @@ install_ollama() {
         done
         warn "No AUR helper found; using the official ollama installer"
     fi
+    if ! has zstd; then
+        warn "The official ollama installer needs 'zstd'. Install it first, e.g.:"
+        warn "  Debian/Ubuntu: sudo apt-get install zstd"
+        warn "  Fedora:        sudo dnf install zstd"
+        warn "  openSUSE:      sudo zypper install zstd"
+        die "zstd is required for ollama installation"
+    fi
     run sh -c "curl -fsSL https://ollama.com/install.sh | ${SUDO} sh"
     has ollama || die "ollama install failed"
     ok "ollama installed"
