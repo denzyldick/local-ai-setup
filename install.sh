@@ -20,6 +20,7 @@ tar -xzf "$TMP/repo.tar.gz" -C "$TMP"
 mkdir -p "$(dirname "$INSTALL_DIR")"
 rm -rf "$INSTALL_DIR"
 mv "$TMP/local-ai-setup-${BRANCH}" "$INSTALL_DIR"
+chmod +x "$INSTALL_DIR/setup.sh" 2>/dev/null || true
 
 log "Installed to ${INSTALL_DIR}"
 exec bash "$INSTALL_DIR/setup.sh" "$@"

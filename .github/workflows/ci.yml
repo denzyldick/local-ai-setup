@@ -36,6 +36,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/bs/src /tmp/bs/www
           printf '#!/usr/bin/env bash\nset -euo pipefail\necho BOOTSTRAP-OK\n' > /tmp/bs/src/setup.sh
+          chmod +x /tmp/bs/src/setup.sh
           tar -C /tmp/bs/src -czf /tmp/bs/www/repo.tar.gz --transform='s,^\./,local-ai-setup-main/,' .
           python3 -m http.server 8123 --directory /tmp/bs/www >/dev/null 2>&1 &
           server=$!
