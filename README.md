@@ -32,7 +32,7 @@ ollama cannot reliably use the GPU (its Vulkan backend is known-broken there).
 ## Quick start
 
 ```bash
-git clone <your-repo-url> local-ai-setup
+git clone git@github.com:denzyl/local-ai-setup.git
 cd local-ai-setup
 ./setup.sh --yes
 ```
