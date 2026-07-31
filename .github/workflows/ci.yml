@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck -x setup.sh install.sh test/container-test.sh test/ov-test.sh
+
+      - name: Syntax checks
+        run: |
+          bash -n setup.sh install.sh test/container-test.sh test/ov-test.sh
+          python3 -m py_compile openvino_server.py
+
+      - name: Test install.sh bootstrap (local tarball)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/bs/src /tmp/bs/www
+          printf '#!/usr/bin/env bash\nset -euo pipefail\necho BOOTSTRAP-OK\n' > /tmp/bs/src/setup.sh
+          tar -C /tmp/bs/src -czf /tmp/bs/www/repo.tar.gz --transform='s,^\./,local-ai-setup-main/,' .
+          python3 -m http.server 8123 --directory /tmp/bs/www >/dev/null 2>&1 &
+          server=$!
+          sleep 1
+          out="$(LOCAL_AI_SETUP_URL=http://127.0.0.1:8123/repo.tar.gz LOCAL_AI_SETUP_DIR=/tmp/bs/inst bash install.sh)"
+          kill "$server" 2>/dev/null || true
+          grep -q BOOTSTRAP-OK <<<"$out"
+          test -x /tmp/bs/inst/setup.sh
+          test -f /tmp/bs/inst/install.sh
+
+  integration:
+    name: Install (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: archlinux
+            image: archlinux:latest
+          - name: debian12
+            image: debian:12
+          - name: ubuntu2404
+            image: ubuntu:24.04
+          - name: fedora
+            image: fedora:latest
+          - name: opensuse
+            image: opensuse/tumbleweed
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup in ${{ matrix.name }} container
+        run: |
+          docker run --rm \
+            -v "$PWD":/opt/local-ai-setup:ro \
+            -w /opt/local-ai-setup \
+            "${{ matrix.image }}" \
+            bash test/container-test.sh --skip-model --yes
+
+  model:
+    name: Full install + model pull
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run setup.sh with real model
+        run: ./setup.sh --yes --model qwen2.5-coder:0.5b
+
+      - name: Verify
+        run: |
+          set -euo pipefail
+          export PATH="$HOME/.opencode/bin:$PATH"
+          ollama list | grep -q '^qwen2.5-coder:0.5b\s' || { ollama list; exit 1; }
+          curl -fsS http://127.0.0.1:11434/api/version >/dev/null
+          ./setup.sh --doctor
+          python3 -c "import json,os; cfg=json.load(open(os.path.expanduser('~/.config/opencode/opencode.json'))); assert cfg['model']=='ollama/qwen2.5-coder:0.5b', cfg"
+
+  openvino:
+    name: OpenVINO setup
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run OpenVINO test in ubuntu container
+        run: |
+          docker run --rm \
+            -v "$PWD":/opt/local-ai-setup:ro \
+            -w /opt/local-ai-setup \
+            ubuntu:24.04 \
+            bash test/ov-test.sh

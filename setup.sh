@@ -38,6 +38,12 @@ NO_OPENCODE=0
 DOCTOR=0
 MODEL_OVERRIDE=""
 
+if [ "$(id -u)" = 0 ]; then
+    SUDO=""
+else
+    SUDO="sudo"
+fi
+
 # --- Model tiers (edit here when better models ship) ------------------------
 declare -A MODEL_TIERS
 MODEL_TIERS[small]="qwen2.5-coder:3b"     # <8GB RAM
@@ -100,6 +106,7 @@ state_write() {
 
 require_sudo() {
     [ "${DRY_RUN}" = 1 ] && return 0
+    [ -n "${SUDO}" ] || return 0
     if sudo -n true 2>/dev/null; then
         return 0
     fi
@@ -183,7 +190,7 @@ install_ollama() {
         done
         warn "No AUR helper found; using the official ollama installer"
     fi
-    run sh -c 'curl -fsSL https://ollama.com/install.sh | sudo sh'
+    run sh -c "curl -fsSL https://ollama.com/install.sh | ${SUDO} sh"
     has ollama || die "ollama install failed"
     ok "ollama installed"
 }
@@ -192,7 +199,7 @@ setup_service() {
     log "starting ollama service"
     if has systemctl && systemctl list-unit-files 'ollama.service' >/dev/null 2>&1; then
         require_sudo
-        run sudo systemctl enable --now ollama
+        run ${SUDO} systemctl enable --now ollama
     elif has systemctl && systemctl --user list-unit-files 'ollama.service' >/dev/null 2>&1; then
         run systemctl --user enable --now ollama
     else
@@ -292,6 +299,15 @@ pull_model() {
 }
 
 # --- opencode -------------------------------------------------------------------
+ensure_opencode_path() {
+    if [ -d "$HOME/.opencode/bin" ]; then
+        case ":${PATH}:" in
+            *":$HOME/.opencode/bin:"*) ;;
+            *) export PATH="$HOME/.opencode/bin:$PATH" ;;
+        esac
+    fi
+}
+
 install_opencode() {
     if has opencode; then
         log "opencode already installed"
@@ -303,12 +319,14 @@ install_opencode() {
     fi
     log "opencode not found, installing..."
     run bash -c 'curl -fsSL https://opencode.ai/install | bash'
+    ensure_opencode_path
     if ! has opencode; then
         warn "opencode install script did not add it to PATH."
         if confirm "Install via npm instead?" && has npm; then
             run npm install -g opencode-ai
         fi
     fi
+    # shellcheck disable=SC2015
     has opencode && ok "opencode installed" || warn "opencode not found in PATH after install"
 }
 
@@ -540,7 +558,7 @@ doctor() {
     if has ollama && [ -n "$(ollama list 2>/dev/null)" ]; then
         check "at least one model installed" 0
     else
-        check "at least one model installed" 1
+        warn "No models installed yet. Pull one with: ollama pull ${RECOMMENDED_MODEL}"
     fi
     if has opencode; then check "opencode present" 0; else check "opencode present" 1; fi
     if [ -f "$OPENCODE_CONFIG" ]; then
@@ -548,11 +566,13 @@ doctor() {
     else
         check "opencode config exists" 1
     fi
-    if [ -d "$OV_VENV" ]; then check "OpenVINO venv present" 0; else check "OpenVINO venv present" 1; fi
-    if curl -fsS --max-time 3 -o /dev/null "${OV_BASE_URL}/models" 2>/dev/null; then
-        check "OpenVINO GPU server reachable" 0
-    else
-        check "OpenVINO GPU server reachable" 1
+    if [ "$(state_read ov_gpu)" = "1" ]; then
+        if [ -d "$OV_VENV" ]; then check "OpenVINO venv present" 0; else check "OpenVINO venv present" 1; fi
+        if curl -fsS --max-time 3 -o /dev/null "${OV_BASE_URL}/models" 2>/dev/null; then
+            check "OpenVINO GPU server reachable" 0
+        else
+            check "OpenVINO GPU server reachable" 1
+        fi
     fi
 
     printf '\n\033[1;32m%s passed, %s failed\033[0m\n' "$okc" "$fail"

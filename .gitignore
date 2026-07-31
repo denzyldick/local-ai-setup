@@ -1,2 +1,3 @@
 *.log
 .env.local
+__pycache__/
