@@ -17,7 +17,8 @@ curl -fsSL "https://codeload.github.com/${REPO}/tar.gz/refs/heads/${BRANCH}" -o 
 tar -xzf "$TMP/repo.tar.gz" -C "$TMP"
 
 mkdir -p "$(dirname "$INSTALL_DIR")"
-cp -a "$TMP/local-ai-setup-${BRANCH}/." "$INSTALL_DIR/"
+rm -rf "$INSTALL_DIR"
+mv "$TMP/local-ai-setup-${BRANCH}" "$INSTALL_DIR"
 
 log "Installed to ${INSTALL_DIR}"
 exec bash "$INSTALL_DIR/setup.sh" "$@"
