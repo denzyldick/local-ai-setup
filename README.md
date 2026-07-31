@@ -31,6 +31,21 @@ ollama cannot reliably use the GPU (its Vulkan backend is known-broken there).
 
 ## Quick start
 
+One command — no clone needed:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/denzyldick/local-ai-setup/main/install.sh | bash
+```
+
+It downloads the project to `~/.local/share/local-ai-setup` and runs the setup.
+Pass any flag straight through:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/denzyldick/local-ai-setup/main/install.sh | bash -s -- --intel-gpu --yes
+```
+
+Prefer to inspect or clone? Grab the repo and run it directly:
+
 ```bash
 git clone git@github.com:denzyldick/local-ai-setup.git
 cd local-ai-setup
@@ -102,7 +117,9 @@ ollama — which is fine and reliable.
 
 ## Upgrading / re-running
 
-The script is idempotent — safe to run again at any stage. On re-run it:
+Re-run the same curl command to fetch the latest version and reconfigure —
+or run `~/.local/share/local-ai-setup/setup.sh` directly. The script is
+idempotent — safe to run again at any stage. On re-run it:
 
 - Skips anything already installed
 - Tells you if a newer recommended model exists and offers the upgrade
@@ -134,7 +151,7 @@ an issue.
 sudo systemctl disable --now ollama
 systemctl --user disable --now openvino-local   # if you used --intel-gpu
 sudo rm /usr/local/bin/ollama                    # or remove via your package manager
-rm -rf ~/.ollama ~/openvino-env ~/.local/share/ollama-opencode-setup
+rm -rf ~/.ollama ~/openvino-env ~/.local/share/ollama-opencode-setup ~/.local/share/local-ai-setup
 # restore your opencode config if you want the pre-setup version back:
 cp ~/.config/opencode/opencode.json.bak ~/.config/opencode/opencode.json
 ```
