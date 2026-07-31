@@ -153,7 +153,9 @@ check_net() {
 # --- Hardware detection --------------------------------------------------------
 detect_hardware() {
     local mem_kb mem_gb cores gpu
-    mem_kb="$(awk '/MemTotal/ {print $2}' /proc/meminfo)"
+    while read -r key val _; do
+        if [ "$key" = "MemTotal:" ]; then mem_kb="$val"; break; fi
+    done < /proc/meminfo
     mem_gb=$((mem_kb / 1024 / 1024))
     cores="$(nproc 2>/dev/null || echo "?")"
     gpu="$(lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -n1 | sed 's/^[0-9:. ]*//' || echo "unknown")"
