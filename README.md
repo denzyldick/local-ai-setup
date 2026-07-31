@@ -1,7 +1,7 @@
 # Local AI Setup for Low-RAM Laptops
 
 One command to turn a fresh Linux laptop (ThinkPads and similar, 8–16 GB RAM,
-integrated graphics, possibly slow internet) into a working local AI machine:
+integrated graphics) into a working local AI machine:
 **ollama + a RAM-appropriate model + opencode**, all wired together. Optional
 Intel GPU acceleration via OpenVINO.
 
@@ -56,7 +56,6 @@ opencode use):
 | < 8 GB     | `qwen2.5-coder:3b`   | ~2 GB   |
 | 8–16 GB    | `qwen2.5-coder:7b`   | ~4.7 GB |
 | ≥ 16 GB    | `qwen2.5-coder:14b`  | ~9 GB   |
-| slow internet | `qwen2.5-coder:1.5b` | ~1 GB |
 
 Use any other model with `--model <name>` (e.g. `--model qwen3:4b`). The tiers
 live at the top of `setup.sh` — when newer/better models ship, just update that
@@ -67,29 +66,13 @@ table and re-run; the script will offer the upgrade.
 | Flag             | What it does                                             |
 |------------------|----------------------------------------------------------|
 | `--model <name>` | Use a specific model, skip the picker                    |
-| `--skip-model`   | Configure everything, defer model downloads (slow internet) |
+| `--skip-model`   | Configure everything, defer model downloads              |
 | `--intel-gpu`    | Also set up the OpenVINO GPU server for Intel iGPUs      |
 | `--no-opencode`  | ollama only, don't touch opencode                        |
 | `--yes`          | Non-interactive, accept recommended defaults             |
 | `--doctor`       | Diagnose an existing setup and exit                      |
 | `--dry-run`      | Print what would happen, change nothing                  |
 | `-h, --help`     | Show usage                                               |
-
-## Slow internet? Download later
-
-```bash
-./setup.sh --skip-model --yes --intel-gpu
-```
-
-This installs and configures everything now. When you have bandwidth, run:
-
-```bash
-ollama pull qwen2.5-coder:7b            # main chat/code model
-systemctl --user start openvino-local   # GPU model (auto-downloads on first start)
-```
-
-Ollama pulls are **resumable** — an interrupted download continues next time,
-and the script retries failed pulls automatically.
 
 ## Intel GPU (OpenVINO)
 
