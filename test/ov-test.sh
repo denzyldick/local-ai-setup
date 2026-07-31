@@ -18,7 +18,7 @@ die() { printf '\033[1;31m==>\033[0m %s\n' "$*" >&2; exit 1; }
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq curl ca-certificates python3 python3-venv
+apt-get install -y -qq curl ca-certificates python3 python3-venv zstd
 
 cd "$REPO_DIR"
 ./setup.sh --intel-gpu --skip-model --yes

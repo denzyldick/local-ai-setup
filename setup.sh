@@ -208,23 +208,41 @@ setup_service() {
     log "starting ollama service"
     if has systemctl && systemctl list-unit-files 'ollama.service' >/dev/null 2>&1; then
         require_sudo
-        run ${SUDO} systemctl enable --now ollama
+        run ${SUDO} systemctl enable ollama
+        if ! run ${SUDO} systemctl start ollama; then
+            warn "systemctl could not start ollama (is systemd running?)"
+        fi
+        wait_for_api allow_fallback
     elif has systemctl && systemctl --user list-unit-files 'ollama.service' >/dev/null 2>&1; then
         run systemctl --user enable --now ollama
+        wait_for_api allow_fallback
     else
         warn "No ollama service unit found; starting ollama in background"
         run nohup ollama serve >/dev/null 2>&1 &
+        wait_for_api no_fallback
     fi
+    ok "ollama API is up"
+}
 
-    local tries=0
+wait_for_api() {
+    local tries=0 fallback=0
+    [ "${1:-}" = allow_fallback ] && fallback=1
     log "waiting for ollama API on ${OLLAMA_BASE_URL}"
     while ! curl -fsS --max-time 2 -o /dev/null "http://127.0.0.1:${OLLAMA_PORT}/api/version" 2>/dev/null; do
         tries=$((tries + 1))
         [ "${DRY_RUN}" = 1 ] && break
-        [ "$tries" -ge 30 ] && die "ollama API did not come up after 30s. Check the log."
+        if [ "$tries" -ge 30 ]; then
+            if [ "$fallback" = 1 ]; then
+                warn "ollama did not come up via systemd; starting in background instead"
+                fallback=0
+                tries=0
+                run nohup ollama serve >/dev/null 2>&1 &
+                continue
+            fi
+            die "ollama API did not come up after 30s. Check the log."
+        fi
         sleep 1
     done
-    ok "ollama API is up"
 }
 
 # --- Model pick + pull ----------------------------------------------------------
